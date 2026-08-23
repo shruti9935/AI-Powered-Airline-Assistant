@@ -1,0 +1,42 @@
+* { box-sizing: border-box; margin: 0; }
+body {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: #eef3f9;
+  color: #1a2333;
+}
+.app { max-width: 720px; margin: 0 auto; padding: 16px; }
+.topbar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 4px;
+}
+.brand { font-size: 1.25rem; font-weight: 600; color: #0b4f8a; }
+.card {
+  background: #fff; border-radius: 12px; padding: 20px;
+  box-shadow: 0 2px 12px rgba(11, 79, 138, 0.08);
+}
+.auth-card { max-width: 380px; margin: 10vh auto; display: flex; flex-direction: column; gap: 10px; }
+.auth-card form { display: flex; flex-direction: column; gap: 10px; }
+input, select {
+  padding: 10px 12px; border: 1px solid #c6d3e1; border-radius: 8px; font-size: 0.95rem;
+}
+button {
+  padding: 10px 16px; border: none; border-radius: 8px; font-size: 0.95rem;
+  background: #0b4f8a; color: #fff; cursor: pointer;
+}
+button:disabled { opacity: 0.5; cursor: default; }
+button.link { background: none; color: #0b4f8a; text-decoration: underline; padding: 4px; }
+.error { color: #b3261e; font-size: 0.85rem; }
+.chat-card { display: flex; flex-direction: column; height: 78vh; padding: 0; }
+.messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.bubble { max-width: 82%; padding: 10px 14px; border-radius: 12px; line-height: 1.45; white-space: pre-wrap; }
+.bubble.user { align-self: flex-end; background: #0b4f8a; color: #fff; border-bottom-right-radius: 4px; }
+.bubble.bot { align-self: flex-start; background: #eef3f9; border-bottom-left-radius: 4px; }
+.bubble.typing { color: #5a6a80; font-style: italic; }
+.sources { margin-top: 8px; font-size: 0.75rem; color: #5a6a80; }
+.escalated {
+  margin-top: 8px; font-size: 0.8rem; color: #7a5200;
+  background: #fff4d6; border-radius: 8px; padding: 6px 10px;
+}
+.composer { display: flex; gap: 8px; padding: 12px; border-top: 1px solid #e3eaf2; }
+.composer input { flex: 1; }
+.composer .lang { width: 110px; }

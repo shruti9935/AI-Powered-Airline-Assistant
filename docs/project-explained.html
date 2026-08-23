@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Airline Assistant — Project Explained</title>
+<style>
+  :root {
+    --blue: #0b4f8a;
+    --blue-light: #eef4fa;
+    --blue-mid: #2d7bc0;
+    --ink: #1a2333;
+    --muted: #5a6a80;
+    --border: #d5dfea;
+    --green: #1a7a4a;
+    --green-bg: #e9f6ef;
+    --amber: #915e00;
+    --amber-bg: #fdf3dd;
+    --code-bg: #0f1a2b;
+    --code-ink: #d8e4f2;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", -apple-system, Arial, sans-serif;
+    color: var(--ink);
+    background: #f6f8fb;
+    line-height: 1.6;
+    font-size: 16px;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 0 24px 80px; }
+  header {
+    background: linear-gradient(135deg, #083c69, #1565a8);
+    color: #fff;
+    padding: 48px 24px 40px;
+    margin-bottom: 36px;
+  }
+  header .wrap { padding-bottom: 0; }
+  header h1 { font-size: 2rem; margin-bottom: 8px; }
+  header p { color: #cfe2f5; max-width: 720px; }
+  header .stack {
+    margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px;
+  }
+  header .stack span {
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 999px;
+    padding: 3px 12px; font-size: 0.82rem;
+  }
+  nav.toc {
+    background: #fff; border: 1px solid var(--border); border-radius: 10px;
+    padding: 18px 22px; margin-bottom: 36px;
+  }
+  nav.toc strong { display: block; margin-bottom: 8px; color: var(--blue); }
+  nav.toc ol { padding-left: 22px; columns: 2; column-gap: 32px; }
+  nav.toc a { color: var(--blue-mid); text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+  section { margin-bottom: 44px; }
+  h2 {
+    color: var(--blue); font-size: 1.45rem;
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 8px; margin-bottom: 18px;
+    scroll-margin-top: 20px;
+  }
+  h3 { color: var(--blue-mid); font-size: 1.08rem; margin: 22px 0 8px; }
+  p { margin-bottom: 12px; }
+  ul, ol { margin: 0 0 12px 24px; }
+  li { margin-bottom: 6px; }
+  b { color: var(--blue); }
+  .card {
+    background: #fff; border: 1px solid var(--border); border-radius: 10px;
+    padding: 18px 22px; margin: 14px 0;
+  }
+  .say {
+    background: var(--green-bg); border-left: 4px solid var(--green);
+    border-radius: 0 8px 8px 0; padding: 14px 18px; margin: 14px 0;
+  }
+  .say .tag { font-size: 0.75rem; font-weight: 700; letter-spacing: 1px; color: var(--green); text-transform: uppercase; display:block; margin-bottom: 6px;}
+  .note {
+    background: var(--amber-bg); border-left: 4px solid var(--amber);
+    border-radius: 0 8px 8px 0; padding: 12px 18px; margin: 14px 0; font-size: 0.95rem;
+  }
+  pre {
+    background: var(--code-bg); color: var(--code-ink);
+    border-radius: 8px; padding: 16px 18px; overflow-x: auto;
+    font-size: 0.85rem; line-height: 1.55; margin: 14px 0;
+    font-family: Consolas, "Courier New", monospace;
+  }
+  code { font-family: Consolas, monospace; background: var(--blue-light); color: var(--blue); padding: 1px 6px; border-radius: 4px; font-size: 0.88em; }
+  pre code { background: none; color: inherit; padding: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; background: #fff; font-size: 0.93rem; }
+  th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; vertical-align: top; }
+  th { background: var(--blue-light); color: var(--blue); }
+  /* flow diagram */
+  .flow { display: flex; flex-direction: column; gap: 0; margin: 18px 0; }
+  .fstep {
+    background: #fff; border: 1.5px solid var(--blue-mid); border-radius: 10px;
+    padding: 12px 18px; position: relative;
+  }
+  .fstep .n {
+    display: inline-block; background: var(--blue); color: #fff;
+    width: 24px; height: 24px; border-radius: 50%; text-align: center;
+    line-height: 24px; font-size: 0.8rem; font-weight: 700; margin-right: 10px;
+  }
+  .fstep b { color: var(--blue); }
+  .arrow { text-align: center; color: var(--blue-mid); font-size: 1.2rem; line-height: 1.6; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } nav.toc ol { columns: 1; } }
+  details.qa {
+    background: #fff; border: 1px solid var(--border); border-radius: 8px;
+    margin-bottom: 10px; padding: 0;
+  }
+  details.qa summary {
+    cursor: pointer; padding: 12px 16px; font-weight: 600; color: var(--blue);
+    list-style-position: inside;
+  }
+  details.qa div { padding: 0 16px 14px 16px; border-top: 1px solid var(--border); padding-top: 10px; }
+  .footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--border); padding-top: 16px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <h1>✈️ AI-Powered Airline Assistant — Explained</h1>
+    <p>A complete walkthrough of the multilingual RAG chatbot: what it does, how every component works, and how to talk about it confidently in an SDE interview.</p>
+    <div class="stack">
+      <span>React</span><span>FastAPI</span><span>Gemini 2.5 Flash</span>
+      <span>gemini-embedding-001</span><span>ChromaDB</span><span>MySQL</span>
+      <span>JWT + bcrypt</span><span>SMTP</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<nav class="toc">
+  <strong>Contents</strong>
+  <ol>
+    <li><a href="#pitch">Elevator pitch</a></li>
+    <li><a href="#problem">Problem &amp; why RAG</a></li>
+    <li><a href="#arch">Architecture &amp; request lifecycle</a></li>
+    <li><a href="#rag">RAG deep-dive</a></li>
+    <li><a href="#multi">Multilingual flow</a></li>
+    <li><a href="#auth">Auth &amp; security</a></li>
+    <li><a href="#logging">Query logging</a></li>
+    <li><a href="#escalation">Human-in-the-loop escalation</a></li>
+    <li><a href="#qa">Interview Q&amp;A (12 questions)</a></li>
+    <li><a href="#metrics">Metrics &amp; talking points</a></li>
+  </ol>
+</nav>
+
+<!-- 1 ─────────────────────────────────────────── -->
+<section id="pitch">
+  <h2>1. Elevator Pitch (30 seconds)</h2>
+  <div class="say">
+    <span class="tag">Say this in the interview</span>
+    "I built an AI customer-support assistant for airlines. Passengers ask questions in English, Hindi, Spanish, or French, and the system answers using <b>Retrieval-Augmented Generation</b>: it converts the question into a multilingual embedding, searches a ChromaDB vector store of airline policy and FAQ documents, and feeds the most relevant chunks to <b>Gemini 2.5 Flash</b>, which answers <em>only from that retrieved context</em> — so answers are grounded in real policy, not hallucinated. It's a full-stack app: React frontend, FastAPI backend, JWT auth with bcrypt, and MySQL for query logging. The part I'm most proud of is the <b>human-in-the-loop escalation</b>: when the bot can't confidently answer, it classifies the query into a department — Baggage, Refunds, Special Assistance — and emails that team the full conversation via SMTP, so no customer query is ever dropped."
+  </div>
+</section>
+
+<!-- 2 ─────────────────────────────────────────── -->
+<section id="problem">
+  <h2>2. Problem &amp; Motivation</h2>
+  <p>Airline support teams handle enormous volumes of repetitive questions — baggage limits, refund timelines, check-in deadlines — in many languages. A plain LLM chatbot fails here for three reasons:</p>
+  <ul>
+    <li><b>Hallucination:</b> an LLM will confidently invent a refund policy. In a domain with money and legal rules, a wrong answer is worse than no answer.</li>
+    <li><b>Stale knowledge:</b> policies change (fees, timings). An LLM's training data can't be updated per airline.</li>
+    <li><b>No accountability:</b> a pure bot has no path to a human when it fails.</li>
+  </ul>
+
+  <h3>Why RAG instead of fine-tuning?</h3>
+  <table>
+    <tr><th></th><th>RAG (chosen)</th><th>Fine-tuning</th></tr>
+    <tr><td><b>Updating knowledge</b></td><td>Drop a new PDF, re-run ingestion — minutes</td><td>Retrain the model — hours + GPU cost</td></tr>
+    <tr><td><b>Hallucination control</b></td><td>Answers cite retrieved text; verifiable</td><td>Model can still invent facts</td></tr>
+    <tr><td><b>Cost</b></td><td>API calls only</td><td>Training + hosting a custom model</td></tr>
+    <tr><td><b>Traceability</b></td><td>You can show <em>which document</em> produced an answer</td><td>Opaque</td></tr>
+  </table>
+  <div class="say"><span class="tag">Key line</span>
+  "Fine-tuning teaches a model a <em>style or skill</em>; RAG gives it <em>knowledge at answer time</em>. Airline policies are knowledge that changes — so RAG is the right tool."</div>
+</section>
+
+<!-- 3 ─────────────────────────────────────────── -->
+<section id="arch">
+  <h2>3. Architecture &amp; Request Lifecycle</h2>
+  <p>What happens when a logged-in user asks <em>"¿Cuánto equipaje puedo llevar?"</em> (How much baggage can I carry?):</p>
+  <div class="flow">
+    <div class="fstep"><span class="n">1</span><b>React UI</b> sends <code>POST /chat</code> with the query + JWT in the <code>Authorization</code> header.</div>
+    <div class="arrow">▼</div>
+    <div class="fstep"><span class="n">2</span><b>FastAPI middleware</b> verifies the JWT signature, identifies the user, rejects if expired/invalid (401).</div>
+    <div class="arrow">▼</div>
+    <div class="fstep"><span class="n">3</span><b>Retriever</b> embeds the Spanish query with <code>gemini-embedding-001</code> → a ~768-dim vector in a <em>language-agnostic</em> semantic space.</div>
+    <div class="arrow">▼</div>
+    <div class="fstep"><span class="n">4</span><b>ChromaDB</b> runs cosine-similarity search → top-5 chunks. The English "Baggage Allowance" section matches even though the query is Spanish.</div>
+    <div class="arrow">▼</div>
+    <div class="fstep"><span class="n">5</span><b>Generator</b> assembles the prompt: system instructions + retrieved chunks + query + "answer in the user's language, only from context."</div>
+    <div class="arrow">▼</div>
+    <div class="fstep"><span class="n">6</span><b>Gemini 2.5 Flash</b> generates a grounded Spanish answer citing the baggage policy.</div>
+    <div class="arrow">▼</div>
+    <div class="fstep"><span class="n">7</span><b>Logger</b> writes query, language, retrieved chunk IDs, answer, and similarity scores to MySQL <code>query_logs</code>.</div>
+    <div class="arrow">▼</div>
+    <div class="fstep"><span class="n">8</span><b>Confidence gate</b>: if top similarity was too low or the model said it couldn't answer → <b>department routing + SMTP escalation</b>. Otherwise the answer streams back to React.</div>
+  </div>
+</section>
+
+<!-- 4 ─────────────────────────────────────────── -->
+<section id="rag">
+  <h2>4. RAG Deep-Dive (the interview core)</h2>
+
+  <h3>4.1 What RAG is</h3>
+  <p><b>Retrieval-Augmented Generation</b> = search + LLM. Instead of asking the model to answer from its memory, you first <em>retrieve</em> the most relevant passages from your own documents, then ask the model to answer <em>using only those passages</em>. The LLM becomes a reading-comprehension engine over your data rather than an oracle.</p>
+
+  <h3>4.2 Ingestion: hierarchical, structure-aware chunking</h3>
+  <p>Naive chunking splits documents every N characters — which can cut a fee table in half or separate a rule from its exception. This project chunks along the <b>document's own structure</b>:</p>
+  <ol>
+    <li><b>Level 1 — sections:</b> split on headings ("3. Cancellations &amp; Refunds", "5. Special Assistance"). Each section is a semantic unit.</li>
+    <li><b>Level 2 — passages:</b> long sections are sub-split into paragraphs/table rows of ~300–500 tokens with ~50-token overlap so no rule is orphaned at a boundary.</li>
+    <li><b>Metadata:</b> every chunk stores <code>doc_title</code>, <code>section</code>, <code>language</code> — used for filtering and for citing sources in answers.</li>
+  </ol>
+  <p>Worked example from the seed document <code>airline-rules-and-regulations.pdf</code>:</p>
+<pre><code>{
+  "id": "swa-pol-2026#sec3#p1",
+  "text": "3. Cancellations &amp; Refunds — More than 72 hours: ₹1,500/sector;
+           72–24 hours: ₹2,500; 24–4 hours: ₹3,500; under 4 hours: only
+           taxes refunded. Refunds processed in 7 business days...",
+  "metadata": { "doc_title": "SkyWings Rules &amp; Regulations",
+                "section": "Cancellations &amp; Refunds",
+                "language": "en" }
+}</code></pre>
+  <div class="say"><span class="tag">Key line</span>
+  "Structure-aware chunking matters because retrieval quality is the ceiling of RAG quality — if the right rule isn't in one retrievable piece, no LLM can answer correctly."</div>
+
+  <h3>4.3 Embeddings: how a Hindi query finds English text</h3>
+  <p>An embedding model maps text to a vector such that <em>similar meaning → nearby vectors</em>. <code>gemini-embedding-001</code> is trained multilingually, so <em>"सामान की सीमा क्या है?"</em>, <em>"What is the baggage limit?"</em>, and <em>"¿Cuál es el límite de equipaje?"</em> all land close together in the same vector space. That's why the knowledge base can stay in English while queries arrive in four languages — <b>cross-lingual retrieval</b> with zero translation step.</p>
+
+  <h3>4.4 ChromaDB: the vector store</h3>
+  <ul>
+    <li>A <b>persistent local collection</b> — embeddings survive restarts, no external service needed.</li>
+    <li>Query = embed the question, find <b>top-k (k=5)</b> nearest chunks by <b>cosine similarity</b>.</li>
+    <li><b>Metadata filtering</b>: e.g. restrict retrieval to <code>section = "Special Assistance"</code> if the query classifier detects that intent.</li>
+  </ul>
+
+  <h3>4.5 Prompt assembly &amp; grounding</h3>
+<pre><code>SYSTEM: You are SkyWings Airlines' support assistant.
+Answer ONLY using the context below. If the context does not
+contain the answer, say you don't know and offer escalation.
+Reply in the same language as the user's question.
+
+CONTEXT:
+[1] (Cancellations &amp; Refunds) "More than 72 hours: ₹1,500..."
+[2] (Flight Changes) "Date changes permitted up to 4 hours..."
+
+USER: Mera flight kal hai, cancel karne par kitna refund milega?</code></pre>
+  <p>The "answer only from context, otherwise say you don't know" instruction is the primary hallucination guard — and the "I don't know" path is exactly what triggers escalation.</p>
+
+  <h3>4.6 Why Gemini 2.5 Flash?</h3>
+  <ul>
+    <li><b>Fast and cheap</b> — a support chat needs low latency and low per-query cost; Flash is optimized for exactly this over the larger Pro model.</li>
+    <li><b>Strong multilingual generation</b> — fluent Hindi/Spanish/French output.</li>
+    <li><b>Long context window</b> — comfortably fits system prompt + 5 chunks + history.</li>
+    <li>One <b>Google AI Studio API key</b> covers both the LLM and the embedding model — simpler ops.</li>
+  </ul>
+</section>
+
+<!-- 5 ─────────────────────────────────────────── -->
+<section id="multi">
+  <h2>5. Multilingual Flow</h2>
+  <ol>
+    <li>The React UI has a language selector; the backend also auto-detects language from the query text (Unicode script + model detection).</li>
+    <li>Retrieval is <b>cross-lingual</b> (section 4.3) — no translation of the knowledge base needed.</li>
+    <li>The generation prompt pins the reply language, so a French question about an English policy gets a French answer.</li>
+    <li>The detected language is logged per query — useful analytics (e.g., "40% of refund queries are in Hindi → translate the refund FAQ page first").</li>
+  </ol>
+</section>
+
+<!-- 6 ─────────────────────────────────────────── -->
+<section id="auth">
+  <h2>6. Authentication &amp; Security</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3 style="margin-top:0">Registration / Login</h3>
+      <ul>
+        <li>Passwords hashed with <b>bcrypt</b> (salted, slow by design) — never stored or logged in plain text.</li>
+        <li>Login returns a <b>JWT</b> signed with <code>JWT_SECRET</code>, containing user ID + expiry.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0">Per-request</h3>
+      <ul>
+        <li>Every <code>/chat</code> call carries <code>Authorization: Bearer &lt;token&gt;</code>.</li>
+        <li>FastAPI dependency verifies signature + expiry → stateless auth, no server-side session store.</li>
+      </ul>
+    </div>
+  </div>
+  <p><b>Secret handling:</b> the Gemini API key, DB credentials, JWT secret, and SMTP password live only in <code>.env</code> (git-ignored) and are read via environment variables — never hard-coded, never sent to the frontend.</p>
+  <div class="say"><span class="tag">If asked "why bcrypt?"</span>
+  "Fast hashes like SHA-256 can be brute-forced at billions of guesses per second. bcrypt is deliberately slow and salted, so even if the database leaks, cracking each password is expensive."</div>
+</section>
+
+<!-- 7 ─────────────────────────────────────────── -->
+<section id="logging">
+  <h2>7. Query Logging &amp; Analytics (MySQL)</h2>
+  <table>
+    <tr><th>Table</th><th>Key columns</th><th>Purpose</th></tr>
+    <tr><td><code>users</code></td><td>id, email, password_hash, created_at</td><td>Accounts</td></tr>
+    <tr><td><code>query_logs</code></td><td>id, user_id, query, language, answer, retrieved_chunk_ids, top_similarity, latency_ms, created_at</td><td>Every interaction — debugging, analytics, retrieval-quality measurement</td></tr>
+    <tr><td><code>departments</code></td><td>id, name, email, keywords</td><td>Routing targets (Baggage, Refunds, Special Assistance, General)</td></tr>
+    <tr><td><code>escalations</code></td><td>id, query_log_id, department_id, status, created_at</td><td>Human-in-the-loop tracking</td></tr>
+  </table>
+  <p>Why log <code>retrieved_chunk_ids</code> and <code>top_similarity</code>? Because when an answer is wrong, you must know whether <b>retrieval failed</b> (wrong chunks fetched) or <b>generation failed</b> (right chunks, bad answer) — they have completely different fixes.</p>
+</section>
+
+<!-- 8 ─────────────────────────────────────────── -->
+<section id="escalation">
+  <h2>8. Human-in-the-Loop Escalation</h2>
+  <div class="flow">
+    <div class="fstep"><span class="n">1</span><b>Detect failure:</b> top similarity below threshold (e.g. &lt; 0.55), the model replied "I don't know," or the user clicks "This didn't help."</div>
+    <div class="arrow">▼</div>
+    <div class="fstep"><span class="n">2</span><b>Route:</b> classify the query to a department — keyword/embedding match against the <code>departments</code> table (e.g. "suitcase", "lost bag" → Baggage Services).</div>
+    <div class="arrow">▼</div>
+    <div class="fstep"><span class="n">3</span><b>Email:</b> <code>smtplib</code> over TLS (Gmail app password) sends the department the user's query, detected language, conversation transcript, and what the bot retrieved — the human agent starts with full context.</div>
+    <div class="arrow">▼</div>
+    <div class="fstep"><span class="n">4</span><b>Track:</b> an <code>escalations</code> row is created with status <code>open</code>; the user is told their query was forwarded and to expect a reply.</div>
+  </div>
+  <div class="say"><span class="tag">Key line</span>
+  "The design principle is that the bot's failure mode is graceful: it never dead-ends a customer. Every query either gets a grounded answer or a guaranteed human follow-up."</div>
+</section>
+
+<!-- 9 ─────────────────────────────────────────── -->
+<section id="qa">
+  <h2>9. Likely Interview Questions — with Strong Answers</h2>
+
+  <details class="qa" open><summary>Q1. How do you prevent hallucination?</summary><div>
+    Three layers: (1) the prompt restricts the model to the retrieved context and instructs it to say "I don't know" otherwise; (2) low retrieval similarity blocks confident answers and triggers escalation instead; (3) answers can cite the source section, so they're verifiable. Grounding doesn't make hallucination impossible, but it turns "confidently wrong" into "honestly unsure — escalate."
+  </div></details>
+
+  <details class="qa"><summary>Q2. What if retrieval returns nothing relevant?</summary><div>
+    That's a designed path, not an error. If the top similarity score is below the threshold, the system skips generation (or generates a polite "I couldn't find this in our policies"), routes the query to a department, and sends the SMTP escalation. Retrieval failure becomes a feature: it's the signal that a human is needed.
+  </div></details>
+
+  <details class="qa"><summary>Q3. Why ChromaDB and not Pinecone / FAISS / pgvector?</summary><div>
+    For this scale (thousands of chunks, single node), ChromaDB gives persistence, metadata filtering, and a clean Python API with zero infrastructure — ideal for a self-hosted project. Pinecone is a managed service (cost, network dependency) that pays off at millions of vectors; FAISS is a raw index library without metadata/persistence conveniences; pgvector is great if you already run Postgres, but this stack uses MySQL. The honest answer: at my scale, any would work — I chose the lowest operational overhead.
+  </div></details>
+
+  <details class="qa"><summary>Q4. How does a Hindi question match an English document?</summary><div>
+    The embedding model is multilingual: it was trained so that translations map to nearby vectors. "Baggage limit?" and "सामान की सीमा?" produce vectors with high cosine similarity, so the English policy chunk is retrieved directly — no translation step, no per-language document copies.
+  </div></details>
+
+  <details class="qa"><summary>Q5. Chunk-size trade-offs?</summary><div>
+    Small chunks → precise retrieval but fragmented context (a fee slab without its exceptions). Large chunks → complete context but diluted embeddings (one vector averaging many topics) and wasted prompt tokens. I mitigated the trade-off structurally: chunk along headings so each chunk is one coherent policy topic (~300–500 tokens), with overlap so boundary sentences appear in both neighbors.
+  </div></details>
+
+  <details class="qa"><summary>Q6. Why FastAPI over Flask/Django?</summary><div>
+    Native <code>async</code> — the backend spends most of its time waiting on Gemini API calls, and async lets one worker handle many concurrent chats. Plus Pydantic request validation, automatic OpenAPI docs, and dependency injection (used for JWT verification). Django is heavier than needed; Flask would work but adds async and validation as bolt-ons.
+  </div></details>
+
+  <details class="qa"><summary>Q7. Why JWT instead of server-side sessions?</summary><div>
+    Stateless: the token itself proves identity via signature, so no session store lookup per request and easy horizontal scaling. Trade-off I can discuss: JWTs can't be revoked before expiry — mitigated with short expiry times and (if needed) a token blacklist for logout.
+  </div></details>
+
+  <details class="qa"><summary>Q8. How would you scale this to production?</summary><div>
+    (1) Multiple Uvicorn workers behind a load balancer — stateless JWT auth makes this trivial. (2) Move ChromaDB to client-server mode or a managed vector DB as the corpus grows. (3) Cache frequent Q&amp;A pairs (Redis) — support queries follow a Zipf distribution, so a small cache absorbs a large share of traffic. (4) A message queue for escalation emails so SMTP latency/failures never block chat responses. (5) Streaming responses via SSE for perceived latency.
+  </div></details>
+
+  <details class="qa"><summary>Q9. How do you evaluate the system?</summary><div>
+    Two levels. <b>Retrieval:</b> a golden set of question → correct-section pairs, measuring hit-rate@k (is the right chunk in the top-k?). <b>Generation:</b> spot-check answers for faithfulness to the retrieved context, and track the escalation rate and user "didn't help" clicks as live quality signals. The <code>query_logs</code> table (chunk IDs + similarity per query) makes both measurable after the fact.
+  </div></details>
+
+  <details class="qa"><summary>Q10. What was the hardest part?</summary><div>
+    Chunking real policy documents. Tables (fee slabs) and rule-exception pairs break under naive splitting, and retrieval quality — not the LLM — turned out to be the bottleneck. Moving from fixed-size to structure-aware hierarchical chunking with metadata was the single biggest quality improvement.
+  </div></details>
+
+  <details class="qa"><summary>Q11. How is the department for escalation chosen?</summary><div>
+    Each department row carries keywords/descriptions; the query is matched against them (keyword match, upgradeable to embedding similarity against department descriptions — same technique as document retrieval, reused). Unmatched queries default to General Support, so routing can never fail hard.
+  </div></details>
+
+  <details class="qa"><summary>Q12. What would you build next?</summary><div>
+    Hybrid retrieval (BM25 + dense vectors with reciprocal-rank fusion) — dense embeddings miss exact terms like flight codes and fee amounts that keyword search catches; a reranker over the top-20; an admin dashboard over <code>query_logs</code>; and response streaming. Each targets a measured weakness rather than being a feature for its own sake.
+  </div></details>
+</section>
+
+<!-- 10 ─────────────────────────────────────────── -->
+<section id="metrics">
+  <h2>10. Metrics &amp; Talking Points</h2>
+  <p>Concrete numbers make the project credible. Measure and remember these from your own runs:</p>
+  <table>
+    <tr><th>Metric</th><th>What to say</th></tr>
+    <tr><td>Languages</td><td>4 (English, Hindi, Spanish, French) — one knowledge base, cross-lingual retrieval</td></tr>
+    <tr><td>End-to-end latency</td><td>Embed (~100 ms) + ChromaDB search (&lt;50 ms) + Gemini Flash generation (~1–2 s) → ~2 s typical</td></tr>
+    <tr><td>Retrieval config</td><td>top-k = 5, cosine similarity, ~300–500-token chunks, ~50-token overlap</td></tr>
+    <tr><td>Escalation threshold</td><td>similarity &lt; 0.55 or explicit "I don't know" → auto-escalate</td></tr>
+    <tr><td>Departments</td><td>4 routing targets: Baggage, Refunds, Special Assistance, General</td></tr>
+  </table>
+  <div class="note"><b>Honesty rule for interviews:</b> present measured numbers from your own machine as "on my setup, roughly…". If you haven't measured something yet, say "I'd measure it via the query_logs table" — that answer is stronger than a made-up number.</div>
+
+  <h3>One-line summaries per component (rapid-fire round)</h3>
+  <ul>
+    <li><b>RAG:</b> "Search my documents first, then let the LLM answer only from what was found."</li>
+    <li><b>Embeddings:</b> "Meaning → vector; similar meaning → nearby vectors, across languages."</li>
+    <li><b>ChromaDB:</b> "The database that stores those vectors and finds the nearest ones fast."</li>
+    <li><b>Chunking:</b> "Cut documents along their own structure so each piece is one complete rule."</li>
+    <li><b>JWT:</b> "A signed, self-contained proof of identity sent with every request."</li>
+    <li><b>Escalation:</b> "When the bot isn't sure, a human gets an email with the full context — no dead ends."</li>
+  </ul>
+</section>
+
+<div class="footer">
+  AI-Powered Airline Assistant — self project. SkyWings Airlines is fictional; the seed knowledge document is <code>docs/airline-rules-and-regulations.pdf</code>. Stack: React · FastAPI · Gemini 2.5 Flash · gemini-embedding-001 · ChromaDB · MySQL · JWT/bcrypt · SMTP.
+</div>
+
+</div>
+</body>
+</html>
