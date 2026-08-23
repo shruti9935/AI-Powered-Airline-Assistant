@@ -172,14 +172,4 @@ To add knowledge:
 
 ---
 
-## 🔮 Future Improvements
-
-- Streaming responses (Server-Sent Events)
-- Hybrid retrieval (BM25 + dense) with reranking
-- Admin dashboard for query analytics and escalation management
-- Voice input/output and more languages
-- Docker Compose deployment
-
----
-
 *SkyWings Airlines is a fictional carrier used for demonstration. This is a self-project for learning production RAG patterns.*
