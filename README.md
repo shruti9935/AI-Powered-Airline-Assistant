@@ -105,8 +105,7 @@ airline-chatbot/
 ```env
 GEMINI_API_KEY=your_google_ai_studio_key
 
-# SQLite (default, zero setup) — or MySQL:
-# DATABASE_URL=mysql+pymysql://airline_user:your_password@localhost/airline_assistant
+
 DATABASE_URL=sqlite:///./airline.db
 
 JWT_SECRET=a_long_random_string
