@@ -44,3 +44,6 @@ yarn-error.log*
 Thumbs.db
 ehthumbs.db
 desktop.ini
+
+# ---- Generated dev secret ----
+backend/.dev_jwt_secret

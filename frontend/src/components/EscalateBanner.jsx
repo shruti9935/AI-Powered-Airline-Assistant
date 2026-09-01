@@ -1,11 +1,13 @@
 import React from 'react'
 
-export default function EscalateBanner({ auto }) {
+export default function EscalateBanner({ auto, department, slaHours }) {
+  const team = department ? `${department} team` : 'relevant airline department'
+  const within = slaHours ? ` They will contact you within ${slaHours} hours.` : ''
   return (
     <div className="escalated">
       {auto
-        ? '📨 This query was escalated to the relevant airline department — a human agent will follow up by email.'
-        : '📨 Escalated to a human agent.'}
+        ? `📨 This query was escalated to the ${team}.${within}`
+        : `📨 Escalated to the ${team}.${within}`}
     </div>
   )
 }

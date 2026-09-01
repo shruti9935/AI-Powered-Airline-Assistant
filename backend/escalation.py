@@ -3,6 +3,7 @@
 If SMTP is not configured, the escalation is still recorded in MySQL/SQLite
 with status "pending_email" so no query is ever silently dropped.
 """
+import json
 import logging
 import smtplib
 from email.mime.text import MIMEText
@@ -10,7 +11,7 @@ from email.mime.text import MIMEText
 from sqlalchemy.orm import Session
 
 import config
-from db import Department, Escalation, QueryLog, User
+from db import Department, Escalation, QueryLog, User, seed_departments
 
 log = logging.getLogger("escalation")
 
@@ -30,15 +31,83 @@ DEPARTMENT_KEYWORDS = {
     ],
 }
 DEFAULT_DEPARTMENT = "General Support"
+TRANSCRIPT_TURNS = 20
+
+
+def _department_by_name(name: str, db: Session) -> Department:
+    """Look up a department, re-seeding if the table was never populated.
+
+    Previously a `.one()` here raised NoResultFound and took down an otherwise
+    successful /chat response.
+    """
+    dept = db.query(Department).filter(Department.name == name).one_or_none()
+    if dept is None:
+        seed_departments(db)
+        dept = db.query(Department).filter(Department.name == name).one_or_none()
+    return dept
 
 
 def route_department(query: str, db: Session) -> Department:
     """Classify the query into a department by multilingual keyword rules."""
-    q = query.lower()
+    q = (query or "").lower()
     for dept_name, keywords in DEPARTMENT_KEYWORDS.items():
         if any(kw in q for kw in keywords):
-            return db.query(Department).filter(Department.name == dept_name).one()
-    return db.query(Department).filter(Department.name == DEFAULT_DEPARTMENT).one()
+            dept = _department_by_name(dept_name, db)
+            if dept:
+                return dept
+    dept = _department_by_name(DEFAULT_DEPARTMENT, db)
+    if dept is None:
+        raise RuntimeError("No departments configured — cannot route escalation.")
+    return dept
+
+
+def _render_transcript(query_log: QueryLog, db: Session) -> str:
+    """The whole conversation thread, oldest first."""
+    if query_log.conversation_id is None:
+        turns = [query_log]
+    else:
+        turns = (db.query(QueryLog)
+                 .filter(QueryLog.conversation_id == query_log.conversation_id)
+                 .order_by(QueryLog.id).limit(TRANSCRIPT_TURNS).all())
+    lines = []
+    for turn in turns:
+        marker = "  <-- escalated" if turn.id == query_log.id else ""
+        lines.append(f"Passenger: {turn.query}{marker}")
+        lines.append(f"Assistant: {turn.answer or '-'}")
+        lines.append("")
+    return "\n".join(lines).strip()
+
+
+def _render_context(query_log: QueryLog) -> str:
+    """The policy excerpts the assistant actually retrieved for this turn."""
+    if not query_log.retrieved_context:
+        return "(no excerpts retrieved)"
+    try:
+        chunks = json.loads(query_log.retrieved_context)
+    except json.JSONDecodeError:
+        return "(context unavailable)"
+    if not chunks:
+        return "(no excerpts retrieved)"
+    return "\n\n".join(
+        "[{0} | {1}] similarity {2}\n{3}".format(
+            c.get("id", "?"), c.get("section", "?"), c.get("similarity", "?"),
+            c.get("text", ""))
+        for c in chunks)
+
+
+def build_email_body(user: User, query_log: QueryLog, reason: str, db: Session) -> str:
+    return (
+        "A passenger query could not be resolved by the AI assistant.\n\n"
+        f"Passenger: {user.email}\n"
+        f"Language: {query_log.language}\n"
+        f"Reason: {reason}\n"
+        f"Confidence: {query_log.top_similarity}\n"
+        f"Conversation: #{query_log.conversation_id}\n\n"
+        "--- CONVERSATION TRANSCRIPT ---\n"
+        f"{_render_transcript(query_log, db)}\n\n"
+        "--- RETRIEVED POLICY CONTEXT ---\n"
+        f"{_render_context(query_log)}\n"
+    )
 
 
 def _send_email(to_addr: str, subject: str, body: str) -> bool:
@@ -60,19 +129,23 @@ def _send_email(to_addr: str, subject: str, body: str) -> bool:
 
 
 def escalate(user: User, query_log: QueryLog, reason: str, db: Session) -> Escalation:
-    """Route to a department, email it (if SMTP configured), record the escalation."""
+    """Route to a department, email it (if SMTP configured), record the escalation.
+
+    Idempotent: an already-escalated query returns its existing record.
+    """
+    existing = (db.query(Escalation)
+                .filter(Escalation.query_log_id == query_log.id).one_or_none())
+    if existing:
+        return existing
+
     dept = route_department(query_log.query, db)
-    body = (
-        "A passenger query could not be resolved by the AI assistant.\n\n"
-        "Passenger: {email}\nLanguage: {lang}\nReason: {reason}\n\n"
-        "Query:\n{query}\n\nAssistant answer (if any):\n{answer}\n"
-    ).format(email=user.email, lang=query_log.language, reason=reason,
-             query=query_log.query, answer=query_log.answer or "-")
+    body = build_email_body(user, query_log, reason, db)
     emailed = _send_email(dept.email, "[Escalation] SkyWings AI Assistant", body)
 
     esc = Escalation(
         user_id=user.id, query_log_id=query_log.id, department_id=dept.id,
-        reason=reason, status="emailed" if emailed else "pending_email")
+        reason=reason, detail=body,
+        status="emailed" if emailed else "pending_email")
     db.add(esc)
     query_log.escalated = 1
     db.commit()
